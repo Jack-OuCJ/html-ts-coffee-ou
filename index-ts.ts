@@ -17,8 +17,8 @@ const fundButton = document.getElementById("fundButton") as HTMLButtonElement;
 const ethAmountInput = document.getElementById("ethAmount") as HTMLInputElement;
 const balanceButton = document.getElementById("balanceButton") as HTMLButtonElement;
 const withdrawButton = document.getElementById("withdrawButton") as HTMLButtonElement;
-
-console.log("asdsad");
+const fundedAddress = document.getElementById("fundedAddress") as HTMLInputElement;
+const fundedButton = document.getElementById("fundedButton") as HTMLButtonElement;
 
 let walletClient: WalletClient;
 let publicClient: PublicClient;
@@ -105,6 +105,35 @@ async function getBalance(): Promise<void> {
     }
 }
 
+async function getFundedAmount(): Promise<void> {
+    console.log("get Funded Amount ...");
+
+    if (typeof window.ethereum !== "undefined") {
+        walletClient = createWalletClient({
+            transport: custom(window.ethereum)
+        });
+        const [connectedAccount] = await walletClient.requestAddresses();
+        const currentChain = await getCurrentChain(walletClient);
+        publicClient = createPublicClient({
+            transport: custom(window.ethereum)
+        });
+
+        const fundedAddressValue = fundedAddress.value.trim();
+        const { request, result} = await publicClient.simulateContract({
+            address: contractAddress,
+            abi: coffeeAbi,
+            functionName: "getAddressToAmountFunded",
+            args: [fundedAddressValue],
+            account: connectedAccount,
+            chain: currentChain
+        });
+
+        console.log("Funded Amount: ", formatEther(result));
+    } else {
+        connectButton.innerHTML = "Please install Metamask!";
+    }
+}
+
 async function getCurrentChain(client: ReturnType<typeof createWalletClient>): Promise<ReturnType<typeof defineChain>> {
     const chainId = await client.getChainId();
     const currentChain = defineChain({
@@ -128,3 +157,4 @@ connectButton.onclick = connect;
 fundButton.onclick = fund;
 balanceButton.onclick = getBalance;
 withdrawButton.onclick = withdraw;
+fundedButton.onclick = getFundedAmount;
